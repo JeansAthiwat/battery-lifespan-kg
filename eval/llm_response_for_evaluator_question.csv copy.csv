@@ -1,0 +1,3 @@
+TEST_BATTERY_ID,TEST_BATTERY_QUERY_FEATURE,q1,q1_raw_response,q2,q2_raw_response,q3,q3_raw_response
+b3c7,slope_last_10_cycles,'Can you identify batteries that have a similar slope_last_10_cycles feature?',,'Are there any batteries that match a slope_last_10_cycles feature?',,'Can you locate batteries with a comparable slope_last_10_cycles feature?',
+b3c7,mean_grad_last_10_cycles,'Can you identify batteries that have similar mean_grad_last_10_cycles as this unknown one?',"b1c1, b1c3, b1c4",'Are there any batteries that match the mean_grad_last_10_cycles of this unidentified battery?',"b1c1, b1c3, b1c4, b1c0, b1c2, b1c41, b1c28, b1c24, b1c29, b1c14",'Can you locate batteries with a similar mean_grad_last_10_cycles to this mystery battery?',"b1c1, b1c3, b1c4"

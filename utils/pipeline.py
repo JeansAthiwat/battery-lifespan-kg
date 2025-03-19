@@ -1,5 +1,3 @@
-# pipeline.py
-
 import os
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
@@ -7,8 +5,7 @@ from dotenv import load_dotenv
 from langchain_neo4j import Neo4jGraph, GraphCypherQAChain, Neo4jVector
 from langchain.prompts import PromptTemplate
 from langchain.prompts.example_selector import SemanticSimilarityExampleSelector
-from langchain.chat_models import ChatOpenAI
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_nvidia_ai_endpoints import ChatNVIDIA, NVIDIAEmbeddings  # Updated for NVIDIA endpoints
 
 # Import your feature extraction function
 from utils.txt_feature_extractor import extract_features_from_sample_battery_from_text
@@ -16,13 +13,13 @@ from utils.txt_feature_extractor import extract_features_from_sample_battery_fro
 # --- Load environment variables ---
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+NVAPI_KEY = os.getenv("NVAPI_KEY")
 NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
-if not OPENAI_API_KEY:
-    raise ValueError("OpenAI API key is missing!")
+if not NVAPI_KEY:
+    raise ValueError("NVIDIA API key is missing!")
 if not (NEO4J_URI and NEO4J_USERNAME and NEO4J_PASSWORD):
     raise ValueError("Neo4j credentials are missing!")
 
@@ -30,21 +27,31 @@ if not (NEO4J_URI and NEO4J_USERNAME and NEO4J_PASSWORD):
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
 graph = Neo4jGraph(url=NEO4J_URI, username=NEO4J_USERNAME, password=NEO4J_PASSWORD)
 
-# --- Initialize LLM and Embeddings ---
-llm = ChatOpenAI(
-    model_name="gpt-4",
-    openai_api_key=OPENAI_API_KEY,
-    temperature=0.0
+# --- Initialize LLM using NVIDIA's ChatNVIDIA ---
+llm = ChatNVIDIA(
+    model="meta/llama-3.3-70b-instruct",
+    api_key=NVAPI_KEY,
+    temperature=0.2,
+    top_p=0.7,
+    max_tokens=1024,
 )
-embedder = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+
+# --- Initialize NVIDIA Embeddings using NVIDIAEmbeddings with model NV-Embed-QA ---
+embedder = NVIDIAEmbeddings(
+    model="NV-Embed-QA", 
+    api_key=NVAPI_KEY,
+    truncate="NONE"
+)
 
 # --- Initialize Neo4j Vector Store for Semantic Similarity ---
 vectorstore = Neo4jVector(
     url=NEO4J_URI,
     username=NEO4J_USERNAME,
     password=NEO4J_PASSWORD,
-    embedding=embedder
+    embedding=embedder,
+    pre_delete_collection=True  # Drops the existing vector index and creates a new one
 )
+
 
 # --- (Optional) Example Prompts for Battery Data ---
 examples = [
@@ -128,4 +135,3 @@ def run_pipeline(user_query, uploaded_file):
         response = {"result": ""}
     
     return response
-
