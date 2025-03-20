@@ -59,7 +59,22 @@ examples = [
         "question": "Which battery has the highest total cycles?",
         "query": "MATCH (b:Battery) RETURN b.battery_id, b.total_cycles ORDER BY b.total_cycles DESC LIMIT 1"
     },
-    # ... add additional examples as needed ...
+    {
+        "question": "Find batteries similar to one with slope_last_500_cycles = -0.000385",
+        "query": "MATCH (b:Battery) WHERE abs(b.slope_last_500_cycles - (-0.000385)) < 0.0001 RETURN b.battery_id, b.slope_last_500_cycles"
+    },
+    {
+        "question": "What is the charging policy of battery ID 'b1c19'?",
+        "query": "MATCH (b:Battery {battery_id: 'b1c19'})-[:LINKED_TO]->(cp:chargingPolicy) RETURN cp.charging_policy"
+    },
+    {
+        "question": "List all charging policies in the database.",
+        "query": "MATCH (cp:chargingPolicy) RETURN cp.charging_policy"
+    },
+    {
+        "question": "Which batteries have similar mean_grad_last_300_cycles?",
+        "query": "MATCH (b:Battery) WHERE abs(b.mean_grad_last_300_cycles - (-0.000578)) < 0.0001 RETURN b.battery_id, b.mean_grad_last_300_cycles"
+    },
 ]
 example_selector = SemanticSimilarityExampleSelector.from_examples(
     examples,
