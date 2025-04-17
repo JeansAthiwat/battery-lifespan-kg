@@ -75,6 +75,10 @@ examples = [
         "question": "Which batteries have similar mean_grad_last_300_cycles?",
         "query": "MATCH (b:Battery) WHERE abs(b.mean_grad_last_300_cycles - (-0.000578)) < 0.0001 RETURN b.battery_id, b.mean_grad_last_300_cycles"
     },
+    {
+        "question": "Which batteries have similar mean_grad_first_500_cycles?",
+        "query": "MATCH (b:Battery) WHERE abs(b.mean_grad_first_500_cycles - (-0.000578)) < 0.0001 RETURN b.battery_id, b.mean_grad_first_500_cycles"
+    },
 ]
 example_selector = SemanticSimilarityExampleSelector.from_examples(
     examples,
