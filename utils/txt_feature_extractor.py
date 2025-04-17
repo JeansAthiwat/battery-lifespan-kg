@@ -23,24 +23,33 @@ def extract_features_from_sample_battery_from_text(file_text: str):
     
     # Initialize the dictionary to hold features
     features = {}
-    
-    # For each k, compute the slope over the last k cycles and the mean gradient
-    for k in k_values:
-        if total_cycles > k:
-            # Slope: difference between the last value and the value k cycles ago divided by k
-            slope = (trimmed_q_d_n[-1] - trimmed_q_d_n[-k]) / k
-            
-            # Mean gradient over the last k cycles using numpy.gradient
-            grad = np.gradient(trimmed_q_d_n[-k:], 1)
-            mean_grad = float(np.mean(grad))
-        else:
-            slope = np.nan
-            mean_grad = np.nan
-        
-        features[f'slope_last_{k}_cycles'] = slope
-        features[f'mean_grad_last_{k}_cycles'] = mean_grad
 
-    # Add average of total cycles to the feature set
+    for k in k_values:
+        # --- Last k cycles ---
+        if total_cycles > k:
+            slope_last = (trimmed_q_d_n[-1] - trimmed_q_d_n[-k]) / k
+            grad_last = np.gradient(trimmed_q_d_n[-k:], 1)
+            mean_grad_last = float(np.mean(grad_last))
+        else:
+            slope_last = np.nan
+            mean_grad_last = np.nan
+        
+        features[f'slope_last_{k}_cycles'] = slope_last
+        features[f'mean_grad_last_{k}_cycles'] = mean_grad_last
+
+        # --- First k cycles ---
+        if total_cycles > k:
+            slope_first = (trimmed_q_d_n[k-1] - trimmed_q_d_n[0]) / k
+            grad_first = np.gradient(trimmed_q_d_n[:k], 1)
+            mean_grad_first = float(np.mean(grad_first))
+        else:
+            slope_first = np.nan
+            mean_grad_first = np.nan
+
+        features[f'slope_first_{k}_cycles'] = slope_first
+        features[f'mean_grad_first_{k}_cycles'] = mean_grad_first
+
+    # Add total cycles to the feature set
     features['total_cycles'] = total_cycles
 
     return features
