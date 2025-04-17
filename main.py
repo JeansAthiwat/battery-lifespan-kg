@@ -40,22 +40,22 @@ def extract_features_from_sample_battery_from_text(file_text: str):
     q_d_n_values = []
     for line in file_text.splitlines():
         # Remove leading/trailing whitespace and trailing commas
-        value_str = line.strip().rstrip(',')
+        value_str = line.strip().rstrip(",")
         if value_str:
             q_d_n_values.append(float(value_str))
-    
+
     # Convert the list to a numpy array
     q_d_n_array = np.array(q_d_n_values)
-    
+
     # Trim trailing zeros from the q_d_n array (assumes zeros at the end indicate no data)
-    trimmed_q_d_n = np.trim_zeros(q_d_n_array, 'b')
-    
+    trimmed_q_d_n = np.trim_zeros(q_d_n_array, "b")
+
     # Compute total cycles as the length of the trimmed array
     total_cycles = len(trimmed_q_d_n)
 
     # Define k values for which features are computed
     k_values = [10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
-    
+
     # Initialize the dictionary to hold features
     features = {}
 
@@ -68,24 +68,24 @@ def extract_features_from_sample_battery_from_text(file_text: str):
         else:
             slope_last = np.nan
             mean_grad_last = np.nan
-        
-        features[f'slope_last_{k}_cycles'] = slope_last
-        features[f'mean_grad_last_{k}_cycles'] = mean_grad_last
+
+        features[f"slope_last_{k}_cycles"] = slope_last
+        features[f"mean_grad_last_{k}_cycles"] = mean_grad_last
 
         # --- First k cycles ---
         if total_cycles > k:
-            slope_first = (trimmed_q_d_n[k-1] - trimmed_q_d_n[0]) / k
+            slope_first = (trimmed_q_d_n[k - 1] - trimmed_q_d_n[0]) / k
             grad_first = np.gradient(trimmed_q_d_n[:k], 1)
             mean_grad_first = float(np.mean(grad_first))
         else:
             slope_first = np.nan
             mean_grad_first = np.nan
 
-        features[f'slope_first_{k}_cycles'] = slope_first
-        features[f'mean_grad_first_{k}_cycles'] = mean_grad_first
+        features[f"slope_first_{k}_cycles"] = slope_first
+        features[f"mean_grad_first_{k}_cycles"] = mean_grad_first
 
     # Add total cycles to the feature set
-    features['total_cycles'] = total_cycles
+    features["total_cycles"] = total_cycles
 
     return features
 
@@ -117,11 +117,7 @@ llm = ChatNVIDIA(
 )
 
 # --- Initialize NVIDIA Embeddings using NVIDIAEmbeddings with model NV-Embed-QA ---
-embedder = NVIDIAEmbeddings(
-    model="NV-Embed-QA",
-    api_key=NVAPI_KEY,
-    truncate="NONE"
-)
+embedder = NVIDIAEmbeddings(model="NV-Embed-QA", api_key=NVAPI_KEY, truncate="NONE")
 
 # --- Initialize Neo4j Vector Store for Semantic Similarity ---
 vectorstore = Neo4jVector(
@@ -129,43 +125,39 @@ vectorstore = Neo4jVector(
     username=NEO4J_USERNAME,
     password=NEO4J_PASSWORD,
     embedding=embedder,
-    pre_delete_collection=False
+    pre_delete_collection=False,
 )
 
 # --- Example Prompts for Battery Data ---
 examples = [
     {
         "question": "Which battery has the highest total cycles?",
-        "query": "MATCH (b:Battery) RETURN b.battery_id, b.total_cycles ORDER BY b.total_cycles DESC LIMIT 1"
+        "query": "MATCH (b:Battery) RETURN b.battery_id, b.total_cycles ORDER BY b.total_cycles DESC LIMIT 1",
     },
     {
         "question": "Find batteries similar to one with slope_last_500_cycles = -0.000385",
-        "query": "MATCH (b:Battery) WHERE abs(b.slope_last_500_cycles - (-0.000385)) < 0.0001 RETURN b.battery_id, b.slope_last_500_cycles"
+        "query": "MATCH (b:Battery) WHERE abs(b.slope_last_500_cycles - (-0.000385)) < 0.0001 RETURN b.battery_id, b.slope_last_500_cycles",
     },
     {
         "question": "What is the charging policy of battery ID 'b1c19'?",
-        "query": "MATCH (b:Battery {battery_id: 'b1c19'})-[:LINKED_TO]->(cp:chargingPolicy) RETURN cp.charging_policy"
+        "query": "MATCH (b:Battery {battery_id: 'b1c19'})-[:LINKED_TO]->(cp:chargingPolicy) RETURN cp.charging_policy",
     },
     {
         "question": "List all charging policies in the database.",
-        "query": "MATCH (cp:chargingPolicy) RETURN cp.charging_policy"
+        "query": "MATCH (cp:chargingPolicy) RETURN cp.charging_policy",
     },
     {
         "question": "Which batteries have similar mean_grad_last_300_cycles?",
-        "query": "MATCH (b:Battery) WHERE abs(b.mean_grad_last_300_cycles - (-0.000578)) < 0.0001 RETURN b.battery_id, b.mean_grad_last_300_cycles"
+        "query": "MATCH (b:Battery) WHERE abs(b.mean_grad_last_300_cycles - (-0.000578)) < 0.0001 RETURN b.battery_id, b.mean_grad_last_300_cycles",
     },
     {
         "question": "Which batteries have similar mean_grad_first_500_cycles?",
-        "query": "MATCH (b:Battery) WHERE abs(b.mean_grad_first_500_cycles - (-0.000123)) < 0.0001 RETURN b.battery_id, b.mean_grad_first_500_cycles"
+        "query": "MATCH (b:Battery) WHERE abs(b.mean_grad_first_500_cycles - (-0.000123)) < 0.0001 RETURN b.battery_id, b.mean_grad_first_500_cycles",
     },
 ]
 
 example_selector = SemanticSimilarityExampleSelector.from_examples(
-    examples,
-    embedder,
-    vectorstore,
-    k=3,
-    input_keys=["question"]
+    examples, embedder, vectorstore, k=3, input_keys=["question"]
 )
 
 # --- Define the Prompt Template ---
@@ -190,8 +182,7 @@ The query is:
 """
 
 CYPHER_GENERATION_PROMPT = PromptTemplate(
-    input_variables=["schema", "query"],
-    template=CYPHER_GENERATION_TEMPLATE
+    input_variables=["schema", "query"], template=CYPHER_GENERATION_TEMPLATE
 )
 
 # --- Create the GraphCypherQAChain instance ---
@@ -217,21 +208,20 @@ if uploaded_file is not None:
         features = extract_features_from_sample_battery_from_text(file_content)
         file_schema = "\n".join(f"{key}: {value}" for key, value in features.items())
         st.success("✅ File uploaded and processed successfully!")
-        
+
         with st.expander("📊 Click to see extracted features"):
             sorted_features = dict(sorted(features.items()))
             for key, value in sorted_features.items():
                 st.write(f"**{key}**: {value}")
 
-
         # --- Clean and parse q_d_n values for plotting ---
         q_values = []
         for line in file_content.strip().splitlines():
-            val = line.strip().rstrip(',')
+            val = line.strip().rstrip(",")
             if val:
                 q_values.append(float(val))
 
-        trimmed = np.trim_zeros(np.array(q_values), 'b')
+        trimmed = np.trim_zeros(np.array(q_values), "b")
         cycles = list(range(1, len(trimmed) + 1))
 
         # --- Plot ---
@@ -247,57 +237,61 @@ if uploaded_file is not None:
         st.error(f"⚠️ Error reading file: {e}")
 
 
-
 def extract_battery_ids(response_text):
-    return re.findall(r'\b(b\d+c\d+)\b', response_text)
+    return re.findall(r"\b(b\d+c\d+)\b", response_text)
+
 
 import pandas as pd
+
 
 def load_battery_data(battery_id):
     try:
         df = pd.read_csv(
-            f"resources/raw/{battery_id}.txt", 
-            header=None,  
-            names=['capacity'],  
-            engine='python',
-            usecols=[0]
+            f"resources/raw/{battery_id}.txt",
+            header=None,
+            names=["capacity"],
+            engine="python",
+            usecols=[0],
         )
         df.dropna(inplace=True)
 
         # --- Trim trailing zeroes ---
-        trimmed = np.trim_zeros(df["capacity"].values, 'b')
+        trimmed = np.trim_zeros(df["capacity"].values, "b")
         cycles = np.arange(1, len(trimmed) + 1)
 
         # --- Return cleaned DataFrame ---
-        return pd.DataFrame({
-            "cycle": cycles,
-            "capacity": trimmed
-        })
+        return pd.DataFrame({"cycle": cycles, "capacity": trimmed})
 
     except Exception as e:
         st.warning(f"Error loading battery {battery_id}: {e}")
         return None
 
+
 import matplotlib.pyplot as plt
+
 
 def plot_batteries(user_df, similar_ids):
     fig, ax = plt.subplots()
     if user_df is not None:
-        ax.plot(user_df['cycle'], user_df['capacity'], label="Uploaded Battery", linewidth=2, color='black')
+        ax.plot(
+            user_df["cycle"],
+            user_df["capacity"],
+            label="Uploaded Battery",
+            linewidth=2,
+            color="black",
+        )
 
     for bid in similar_ids:
         df = load_battery_data(bid)
         if df is not None:
-            ax.plot(df['cycle'], df['capacity'], label=bid, alpha=0.6)
-            print(df['capacity'])
+            ax.plot(df["cycle"], df["capacity"], label=bid, alpha=0.6)
+            print(df["capacity"])
 
     ax.set_xlabel("Cycle")
     ax.set_ylabel("Capacity")
     ax.set_title("Battery Degradation Comparison")
     ax.legend(loc="best", fontsize="small")
     st.pyplot(fig)
-
-
 
 
 user_query = st.text_input("🔍 Ask a question about battery features:")
@@ -311,19 +305,16 @@ if user_query:
             schema_to_use = str(graph.schema)
         except Exception:
             schema_to_use = "Battery nodes with properties like battery_id, total_cycles, slopes, etc."
-    
+
     # (Optionally, retrieve relevant examples for debugging)
     relevant_examples = example_selector.select_examples({"question": user_query})
-    response = response = chain.invoke({
-    "schema": schema_to_use,
-    "query": user_query,
-    "examples": relevant_examples
-})
+    response = chain.invoke(
+        {"schema": schema_to_use, "query": user_query, "examples": relevant_examples}
+    )
 
-    
     # --- Extract battery IDs ---
     battery_ids = extract_battery_ids(response.get("result", ""))
-    print("Extracted similar battery: ",battery_ids)
+    print("Extracted similar battery: ", battery_ids)
 
     # --- Load uploaded battery data (from previous uploaded_file section) ---
     user_df = None
@@ -331,24 +322,21 @@ if user_query:
         try:
             q_values = []
             for line in file_content.strip().splitlines():
-                val = line.strip().rstrip(',')
+                val = line.strip().rstrip(",")
                 try:
                     q_values.append(float(val))
                 except ValueError:
                     continue
-            trimmed = np.trim_zeros(np.array(q_values), 'b')
-            user_df = pd.DataFrame({
-                'cycle': np.arange(1, len(trimmed) + 1),
-                'capacity': trimmed
-            })
+            trimmed = np.trim_zeros(np.array(q_values), "b")
+            user_df = pd.DataFrame(
+                {"cycle": np.arange(1, len(trimmed) + 1), "capacity": trimmed}
+            )
         except Exception as e:
             st.warning(f"Could not load uploaded battery for plotting: {e}")
 
     # --- Show AI text response ---
     st.subheader("🔎 AI Response:")
     st.write(response)
-    
+
     # --- Plot both uploaded + retrieved batteries ---
     plot_batteries(user_df=user_df, similar_ids=battery_ids)
-
-
