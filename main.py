@@ -156,7 +156,7 @@ examples = [
     },
     {
         "question": "Which batteries have similar mean_grad_first_500_cycles?",
-        "query": "MATCH (b:Battery) WHERE abs(b.mean_grad_first_500_cycles - (-0.000578)) < 0.0001 RETURN b.battery_id, b.mean_grad_first_500_cycles"
+        "query": "MATCH (b:Battery) WHERE abs(b.mean_grad_first_500_cycles - (-0.000123)) < 0.0001 RETURN b.battery_id, b.mean_grad_first_500_cycles"
     },
 ]
 
@@ -180,11 +180,10 @@ Instructions:
 - Your response must be a comma-separated list of battery IDs only (no additional text).
 
 Examples:
-# Which battery has the highest total cycles?
-MATCH (b:Battery) RETURN b.battery_id, b.total_cycles ORDER BY b.total_cycles DESC LIMIT 1
+{examples}
 
-# Find batteries similar to one with slope_last_500_cycles = -0.000385
-MATCH (b:Battery) WHERE abs(b.slope_last_500_cycles - (-0.000385)) < 0.0001 RETURN b.battery_id, b.slope_last_500_cycles
+
+replace the number with your Battery's corresponding features.
 
 The query is:
 {query}
@@ -315,7 +314,12 @@ if user_query:
     
     # (Optionally, retrieve relevant examples for debugging)
     relevant_examples = example_selector.select_examples({"question": user_query})
-    response = chain.invoke({"schema": schema_to_use, "query": user_query})
+    response = response = chain.invoke({
+    "schema": schema_to_use,
+    "query": user_query,
+    "examples": relevant_examples
+})
+
     
     # --- Extract battery IDs ---
     battery_ids = extract_battery_ids(response.get("result", ""))
