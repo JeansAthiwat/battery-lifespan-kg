@@ -97,6 +97,7 @@ NVAPI_KEY = os.getenv("NVAPI_KEY")
 NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+NEO4J_DATABASE = os.getenv("NEO4J_DATABASE") 
 
 if not NVAPI_KEY:
     st.error("⚠️ NVIDIA API key is missing! Please set it in your `.env` file.")
